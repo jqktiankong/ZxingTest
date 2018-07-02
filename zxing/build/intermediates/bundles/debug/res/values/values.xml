@@ -55,6 +55,7 @@
     <color name="transparent">#00000000</color>
     <color name="viewfinder_laser">#ffcc0000</color>
     <color name="viewfinder_mask">#60000000</color>
+    <color name="white">#FFFFFF</color>
     <dimen name="half_padding">4dip</dimen>
     <dimen name="standard_padding">8dip</dimen>
     <item name="decode" type="id"/>

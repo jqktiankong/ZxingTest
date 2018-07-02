@@ -32,13 +32,32 @@
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:background="@color/viewfinder_mask"
-            android:layout_height="50dp">
+            android:layout_height="50dp"
+            android:background="@color/viewfinder_mask">
 
-            
+            <ImageView
+                android:id="@+id/back"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:src="@drawable/icon_back" />
+
+            <TextView
+                android:id="@+id/photoAlbum"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="20dp"
+                android:text="相册"
+                android:textColor="@color/white"
+                android:textSize="18sp" />
         </RelativeLayout>
 
     </LinearLayout>
+
     <LinearLayout
         android:id="@+id/result_view"
         android:layout_width="fill_parent"

@@ -122,6 +122,10 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     private BeepManager beepManager;
     private AmbientLightManager ambientLightManager;
 
+    //自己添加的view
+    private ImageView back;
+    private TextView photoAlbum;
+
     ViewfinderView getViewfinderView() {
         return viewfinderView;
     }
@@ -142,12 +146,33 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.capture);
 
+        initView();
+
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        photoAlbum.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 跳转相册
+            }
+        });
+
         hasSurface = false;
         inactivityTimer = new InactivityTimer(this);
         beepManager = new BeepManager(this);
         ambientLightManager = new AmbientLightManager(this);
 
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+    }
+
+    public void initView() {
+        back = findViewById(R.id.back);
+        photoAlbum = findViewById(R.id.photoAlbum);
     }
 
     @Override
