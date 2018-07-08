@@ -30,6 +30,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -44,10 +45,11 @@ import java.util.List;
 public final class ViewfinderView extends View {
 
     private static final int[] SCANNER_ALPHA = {0, 64, 128, 192, 255, 192, 128, 64};
-    private static final long ANIMATION_DELAY = 80L;
+    private static final long ANIMATION_DELAY = 0;
     private static final int CURRENT_POINT_OPACITY = 0xA0;
     private static final int MAX_RESULT_POINTS = 20;
     private static final int POINT_SIZE = 6;
+    private static final int NORMAL_POINT_SIZE = 1;
 
     private CameraManager cameraManager;
     private final Paint paint;
@@ -62,6 +64,7 @@ public final class ViewfinderView extends View {
     private List<ResultPoint> lastPossibleResultPoints;
 
     private Bitmap frameBitmap;
+    private int lineY = 0;
 
     // This constructor is used when the class is built from an XML resource.
     public ViewfinderView(Context context, AttributeSet attrs) {
@@ -108,6 +111,7 @@ public final class ViewfinderView extends View {
         canvas.drawRect(0, frame.bottom + 1, width, height, paint);
 
         // 画蓝色扫描框
+        paint.setStrokeWidth(NORMAL_POINT_SIZE);
         paint.setColor(frameColor);
         canvas.drawLine(frame.left, frame.top, frame.right, frame.top, paint);
         canvas.drawLine(frame.right, frame.top, frame.right, frame.bottom, paint);
@@ -167,6 +171,12 @@ public final class ViewfinderView extends View {
                 }
             }
 
+            paint.setColor(frameColor);
+            paint.setStrokeWidth(POINT_SIZE);
+            Log.d("123", "lineY = " + lineY);
+            canvas.drawLine(frame.left + 20, frame.top + lineY, frame.right - 20, frame.top + lineY, paint);
+            lineY += 2;
+            lineY = lineY >= frame.bottom - frameTop ? 0: lineY;
             // Request another update at the animation interval, but only repaint the laser line,
             // not the entire viewfinder mask.
             postInvalidateDelayed(ANIMATION_DELAY,
