@@ -106,8 +106,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     private CaptureActivityHandler handler;
     private Result savedResultToShow;
     private ViewfinderView viewfinderView;
-    private TextView statusView;
-    private View resultView;
     private Result lastResult;
     private boolean hasSurface;
     private boolean copyToClipboard;
@@ -192,9 +190,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         viewfinderView = (ViewfinderView) findViewById(R.id.viewfinder_view);
         viewfinderView.setCameraManager(cameraManager);
 
-        resultView = findViewById(R.id.result_view);
-        statusView = (TextView) findViewById(R.id.status_view);
-
         handler = null;
         lastResult = null;
 
@@ -205,9 +200,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         } else {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         }
-
-        resetStatusView();
-
 
         beepManager.updatePrefs();
         ambientLightManager.start(cameraManager);
@@ -250,11 +242,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                     if (cameraId >= 0) {
                         cameraManager.setManualCameraId(cameraId);
                     }
-                }
-
-                String customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE);
-                if (customPromptMessage != null) {
-                    statusView.setText(customPromptMessage);
                 }
 
             } else if (dataString != null &&
@@ -625,79 +612,17 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             return;
         }
 
-        statusView.setVisibility(View.GONE);
-        viewfinderView.setVisibility(View.GONE);
-        resultView.setVisibility(View.VISIBLE);
-
-        ImageView barcodeImageView = (ImageView) findViewById(R.id.barcode_image_view);
         if (barcode == null) {
-            barcodeImageView.setImageBitmap(BitmapFactory.decodeResource(getResources(),
-                    R.drawable.launcher_icon));
-        } else {
-            barcodeImageView.setImageBitmap(barcode);
-        }
 
-        TextView formatTextView = (TextView) findViewById(R.id.format_text_view);
-        formatTextView.setText(rawResult.getBarcodeFormat().toString());
-
-        TextView typeTextView = (TextView) findViewById(R.id.type_text_view);
-        typeTextView.setText(resultHandler.getType().toString());
-
-        DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
-        TextView timeTextView = (TextView) findViewById(R.id.time_text_view);
-        timeTextView.setText(formatter.format(rawResult.getTimestamp()));
-
-
-        TextView metaTextView = (TextView) findViewById(R.id.meta_text_view);
-        View metaTextViewLabel = findViewById(R.id.meta_text_view_label);
-        metaTextView.setVisibility(View.GONE);
-        metaTextViewLabel.setVisibility(View.GONE);
-        Map<ResultMetadataType, Object> metadata = rawResult.getResultMetadata();
-        if (metadata != null) {
-            StringBuilder metadataText = new StringBuilder(20);
-            for (Map.Entry<ResultMetadataType, Object> entry : metadata.entrySet()) {
-                if (DISPLAYABLE_METADATA_TYPES.contains(entry.getKey())) {
-                    metadataText.append(entry.getValue()).append('\n');
-                }
-            }
-            if (metadataText.length() > 0) {
-                metadataText.setLength(metadataText.length() - 1);
-                metaTextView.setText(metadataText);
-                metaTextView.setVisibility(View.VISIBLE);
-                metaTextViewLabel.setVisibility(View.VISIBLE);
-            }
         }
 
         CharSequence displayContents = resultHandler.getDisplayContents();
-        TextView contentsTextView = (TextView) findViewById(R.id.contents_text_view);
-        contentsTextView.setText(displayContents);
-        int scaledSize = Math.max(22, 32 - displayContents.length() / 4);
-        contentsTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSize);
+        Log.d("123", "扫描结果 = " + displayContents);
 
-        TextView supplementTextView = (TextView) findViewById(R.id.contents_supplement_text_view);
-        supplementTextView.setText("");
-        supplementTextView.setOnClickListener(null);
-        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
-                PreferencesActivity.KEY_SUPPLEMENTAL, true)) {
-            SupplementalInfoRetriever.maybeInvokeRetrieval(supplementTextView,
-                    resultHandler.getResult(),
-                    historyManager,
-                    this);
-        }
-
-        int buttonCount = resultHandler.getButtonCount();
-        ViewGroup buttonView = (ViewGroup) findViewById(R.id.result_button_view);
-        buttonView.requestFocus();
-        for (int x = 0; x < ResultHandler.MAX_BUTTON_COUNT; x++) {
-            TextView button = (TextView) buttonView.getChildAt(x);
-            if (x < buttonCount) {
-                button.setVisibility(View.VISIBLE);
-                button.setText(resultHandler.getButtonText(x));
-                button.setOnClickListener(new ResultButtonListener(resultHandler, x));
-            } else {
-                button.setVisibility(View.GONE);
-            }
-        }
+        Intent intent = new Intent();
+        intent.putExtra("scanResult", displayContents);
+        setResult(Constants.SCAN_RESULT_CODE, intent);
+        finish();
 
     }
 
@@ -705,7 +630,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     private void handleDecodeExternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
 
         if (barcode != null) {
-            viewfinderView.drawResultBitmap(barcode);
+            // 结果bitmap
         }
 
         long resultDurationMS;
@@ -714,14 +639,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         } else {
             resultDurationMS = getIntent().getLongExtra(Intents.Scan.RESULT_DISPLAY_DURATION_MS,
                     DEFAULT_INTENT_RESULT_DURATION_MS);
-        }
-
-        if (resultDurationMS > 0) {
-            String rawResultString = String.valueOf(rawResult);
-            if (rawResultString.length() > 32) {
-                rawResultString = rawResultString.substring(0, 32) + " ...";
-            }
-            statusView.setText(getString(resultHandler.getDisplayTitle()) + " : " + rawResultString);
         }
 
         maybeSetClipboard(resultHandler);
@@ -843,15 +760,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         if (handler != null) {
             handler.sendEmptyMessageDelayed(R.id.restart_preview, delayMS);
         }
-        resetStatusView();
-    }
-
-    private void resetStatusView() {
-        resultView.setVisibility(View.GONE);
-        statusView.setText(R.string.msg_default_status);
-        statusView.setVisibility(View.VISIBLE);
-        viewfinderView.setVisibility(View.VISIBLE);
-        lastResult = null;
     }
 
     public void drawViewfinder() {
