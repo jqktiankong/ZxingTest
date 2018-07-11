@@ -1707,3 +1707,4 @@ int styleable ViewStubCompat_android_id 0
 int styleable ViewStubCompat_android_inflatedId 1
 int styleable ViewStubCompat_android_layout 2
 int xml preferences 0x7f190001
+int xml provider_path 0x7f190002

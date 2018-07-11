@@ -1,12 +1,12 @@
 -- Merging decision tree log ---
 manifest
-ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
-INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
-INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
-INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
-INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
-INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
-INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-169:12
+ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
+INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
+INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
+INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
+INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
+INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
+INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:16:1-178:12
 	package
 		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:17:5-46
 		INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml
@@ -86,7 +86,7 @@ ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:41:5-
 	android:name
 		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:42:9-45
 application
-ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:45:5-167:19
+ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:45:5-176:19
 activity#com.google.zxing.client.android.CaptureActivity
 ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:46:9-105:20
 	android:screenOrientation
@@ -221,10 +221,22 @@ ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:161:9
 		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:163:13-46
 	android:name
 		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:162:13-41
-activity#com.google.zxing.client.android.ScanActivity
-ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:166:9-59
+provider#android.support.v4.content.FileProvider
+ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:167:9-175:20
+	android:grantUriPermissions
+		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:171:13-47
+	android:authorities
+		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:169:13-79
+	android:exported
+		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:170:13-37
 	android:name
-		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:166:19-47
+		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:168:13-67
+meta-data#android.support.FILE_PROVIDER_PATHS
+ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:172:13-174:57
+	android:resource
+		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:174:17-54
+	android:name
+		ADDED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml:173:17-67
 uses-sdk
 INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from D:\Android\project\ZxingTest\zxing\src\main\AndroidManifest.xml

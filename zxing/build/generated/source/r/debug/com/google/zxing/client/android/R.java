@@ -1746,5 +1746,6 @@ public final class R {
     }
     public static final class xml {
         public static int preferences = 0x7f190001;
+        public static int provider_path = 0x7f190002;
     }
 }

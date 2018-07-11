@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.scan:
                 Intent intent = new Intent();
                 intent.setClass(this, CaptureActivity.class);
-                startActivityForResult(intent, Constants.SCAN_REQUEST_CODE);
+                startActivityForResult(intent, Constants.REQUEST_SCAN);
                 break;
         }
     }
@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Constants.SCAN_RESULT_CODE && requestCode == Constants.SCAN_REQUEST_CODE) {
+        if (resultCode == Constants.RESULT_SCAN && requestCode == Constants.REQUEST_SCAN) {
             Toast.makeText(this, data.getCharSequenceExtra("scanResult"), Toast.LENGTH_SHORT).show();
         }
     }

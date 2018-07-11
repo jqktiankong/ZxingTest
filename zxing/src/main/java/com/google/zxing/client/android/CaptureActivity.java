@@ -36,11 +36,13 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -51,6 +53,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -71,6 +75,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Collection;
@@ -157,6 +162,9 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             @Override
             public void onClick(View v) {
                 // 跳转相册
+                Intent intent = new Intent("android.intent.action.GET_CONTENT");
+                intent.setType("image/*");
+                startActivityForResult(intent, Constants.REQUEST_OPEN_ALBUM);//打开相册
             }
         });
 
@@ -282,6 +290,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 initCamera(surfaceHolder);
             } else {
                 // Install the callback and wait for surfaceCreated() to init the camera.
+                Log.d("123", "addCallback");
                 surfaceHolder.addCallback(this);
             }
         }
@@ -312,6 +321,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 initCamera(surfaceHolder);
             } else {
                 // Install the callback and wait for surfaceCreated() to init the camera.
+                Log.d("123", "addCallback");
                 surfaceHolder.addCallback(this);
             }
         }
@@ -336,6 +346,12 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 return;
             }
         }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d("123", "onStop");
     }
 
     private int getCurrentOrientation() {
@@ -385,9 +401,11 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         if (!hasSurface) {
             SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
             SurfaceHolder surfaceHolder = surfaceView.getHolder();
+            Log.d("123", "removeCallback");
             surfaceHolder.removeCallback(this);
         }
         super.onPause();
+        Log.d("123", "onPause");
     }
 
     @Override
@@ -468,6 +486,29 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 decodeOrStoreSavedBitmap(null, historyItem.getResult());
             }
         }
+
+        if (resultCode == RESULT_OK && intent != null) {
+            Uri uri = intent.getData();
+            decodeOrStoreSavedBitmap(decodeUriAsBitmap(uri), null);
+        }
+        SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
+        SurfaceHolder surfaceHolder = surfaceView.getHolder();
+        initCamera(surfaceHolder);
+        hasSurface = true;
+    }
+
+    private Bitmap decodeUriAsBitmap(Uri uri) {
+        Bitmap bitmap = null;
+        try {
+            // 先通过getContentResolver方法获得一个ContentResolver实例，
+            // 调用openInputStream(Uri)方法获得uri关联的数据流stream
+            // 把上一步获得的数据流解析成为bitmap
+            bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+        return bitmap;
     }
 
     private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
@@ -488,12 +529,10 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.d("123", "2");
         if (holder == null) {
             Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
         }
         if (!hasSurface) {
-            Log.d("123", "3");
             hasSurface = true;
             initCamera(holder);
         }
@@ -501,6 +540,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.d("123", "surfaceDestroyed");
         hasSurface = false;
     }
 
@@ -621,7 +661,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
         Intent intent = new Intent();
         intent.putExtra("scanResult", displayContents);
-        setResult(Constants.SCAN_RESULT_CODE, intent);
+        setResult(Constants.RESULT_SCAN, intent);
         finish();
 
     }
@@ -720,11 +760,9 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
     private void initCamera(SurfaceHolder surfaceHolder) {
         if (surfaceHolder == null) {
-            Log.d("123", "4");
             throw new IllegalStateException("No SurfaceHolder provided");
         }
         if (cameraManager.isOpen()) {
-            Log.d("123", "5");
             Log.w(TAG, "initCamera() while already open -- late SurfaceView callback?");
             return;
         }
@@ -732,7 +770,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             cameraManager.openDriver(surfaceHolder);
             // Creating the handler starts the preview, which can also throw a RuntimeException.
             if (handler == null) {
-                Log.d("123", "6");
                 handler = new CaptureActivityHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);
             }
             decodeOrStoreSavedBitmap(null, null);
