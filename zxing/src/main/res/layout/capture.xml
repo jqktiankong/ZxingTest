@@ -65,4 +65,9 @@
         android:background="@color/transparent"
         android:text="@string/msg_default_status"
         android:textColor="@color/status_text" />
+
+    <ImageView
+        android:id="@+id/img"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 </merge>

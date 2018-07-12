@@ -17,7 +17,16 @@
 package com.google.zxing.client.android;
 
 import com.google.zxing.BarcodeFormat;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.ChecksumException;
 import com.google.zxing.DecodeHintType;
+import com.google.zxing.FormatException;
+import com.google.zxing.LuminanceSource;
+import com.google.zxing.MultiFormatReader;
+import com.google.zxing.NotFoundException;
+import com.google.zxing.PlanarYUVLuminanceSource;
+import com.google.zxing.RGBLuminanceSource;
+import com.google.zxing.Reader;
 import com.google.zxing.Result;
 import com.google.zxing.ResultMetadataType;
 import com.google.zxing.ResultPoint;
@@ -31,6 +40,7 @@ import com.google.zxing.client.android.result.ResultHandler;
 import com.google.zxing.client.android.result.ResultHandlerFactory;
 import com.google.zxing.client.android.result.supplement.SupplementalInfoRetriever;
 import com.google.zxing.client.android.share.ShareActivity;
+import com.google.zxing.common.HybridBinarizer;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -46,6 +56,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
@@ -56,6 +67,7 @@ import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -81,6 +93,8 @@ import java.text.DateFormat;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This activity opens the camera and does the actual scanning on a background thread. It draws a
@@ -90,7 +104,7 @@ import java.util.Map;
  * @author dswitkin@google.com (Daniel Switkin)
  * @author Sean Owen
  */
-public final class CaptureActivity extends Activity implements SurfaceHolder.Callback {
+public final class CaptureActivity extends AppCompatActivity implements SurfaceHolder.Callback {
 
     private static final String TAG = CaptureActivity.class.getSimpleName();
 
@@ -128,6 +142,38 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     //自己添加的view
     private ImageView back;
     private TextView photoAlbum;
+    private ImageView img;
+    // dialog
+    private ScaningDialog scaningDialog;
+    private FragmentTransaction ft;
+    // 线程池
+    private ExecutorService singleThresd;
+
+    private static final int SHOWSCANINGDIALOG = 1000;
+    private static final int HIDESCANINGDIALOG = 1001;
+    private static final int STOPSCAN = 1002;
+    private static final int STARTSCAN = 1003;
+
+    private Handler mhandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case SHOWSCANINGDIALOG:
+                    showProgress();
+                    break;
+                case HIDESCANINGDIALOG:
+                    hideProgress();
+                    break;
+                case STARTSCAN:
+                    inactivityTimer.onResume();
+                    break;
+                case STOPSCAN:
+                    inactivityTimer.onPause();
+                    break;
+            }
+        }
+    };
 
     ViewfinderView getViewfinderView() {
         return viewfinderView;
@@ -179,6 +225,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     public void initView() {
         back = findViewById(R.id.back);
         photoAlbum = findViewById(R.id.photoAlbum);
+        img = findViewById(R.id.img);
     }
 
     @Override
@@ -354,6 +401,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     @Override
     protected void onDestroy() {
         inactivityTimer.shutdown();
+        singleThresd.shutdown();
         super.onDestroy();
     }
 
@@ -430,12 +478,137 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
             }
         }
 
-        if (resultCode == RESULT_OK && intent != null) {
-            Uri uri = intent.getData();
-            decodeOrStoreSavedBitmap(decodeUriAsBitmap(uri), null);
+        if (resultCode == RESULT_OK && requestCode == Constants.REQUEST_OPEN_ALBUM && intent != null) {
+            final Uri uri = intent.getData();
+            final Bitmap bitmap = getSmallerBitmap(decodeUriAsBitmap(uri));
+//            final Bitmap bitmap = decodeUriAsBitmap(uri);
+            img.setImageBitmap(bitmap);
+
+            // 识别二维码作
+            singleThresd = Executors.newSingleThreadExecutor();
+            singleThresd.execute(new Runnable() {
+                @Override
+                public void run() {
+                    LuminanceSource source1 = new PlanarYUVLuminanceSource(rgb2YUV(bitmap), bitmap.getWidth(),
+                            bitmap.getHeight(), 0, 0, bitmap.getWidth(),
+                            bitmap.getHeight(), false);
+                    BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(source1));
+                    Reader reader1 = new MultiFormatReader();
+                    Result result1;
+                    try {
+                        handler.sendEmptyMessage(SHOWSCANINGDIALOG);
+                        handler.sendEmptyMessage(STOPSCAN);
+                        result1 = reader1.decode(binaryBitmap);
+                        String content = result1.getText();
+                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
+                        handler.sendEmptyMessage(STARTSCAN);
+                        Log.d("123", content);
+                    } catch (NotFoundException e) {
+                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
+                        handler.sendEmptyMessage(STARTSCAN);
+                        Log.d("123", "NotFoundException: " + e.getMessage());
+                        e.printStackTrace();
+                    } catch (ChecksumException e) {
+                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
+                        handler.sendEmptyMessage(STARTSCAN);
+                        Log.d("123", "ChecksumException: " + e.getMessage());
+                        e.printStackTrace();
+                    } catch (FormatException e) {
+                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
+                        handler.sendEmptyMessage(STARTSCAN);
+                        Log.d("123", "FormatException: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            });
         }
     }
 
+    public void showProgress() {
+        if (scaningDialog == null) {
+            scaningDialog = new ScaningDialog();
+            ft = getSupportFragmentManager().beginTransaction();
+            ft.add(scaningDialog, "scaningDialog");
+            if (!scaningDialog.isAdded() && !scaningDialog.isVisible() && !scaningDialog.isRemoving()) {
+                ft.commitAllowingStateLoss();
+            }
+        } else {
+            if (!scaningDialog.isAdded() && !scaningDialog.isVisible() && !scaningDialog.isRemoving()) {
+                ft = getSupportFragmentManager().beginTransaction();
+                ft.add(scaningDialog, "ProgressDialog");
+                ft.commitAllowingStateLoss();
+            }
+        }
+    }
+
+    public void hideProgress() {
+        if (scaningDialog != null) {
+            scaningDialog.dismissAllowingStateLoss();
+        }
+    }
+
+    /**
+     * rgb转yuv方法
+     *
+     * @param bitmap
+     * @return
+     */
+    public byte[] rgb2YUV(Bitmap bitmap) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        int len = width * height;
+        byte[] yuv = new byte[len * 3 / 2];
+        int y, u, v;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                int rgb = pixels[i * width + j] & 0x00FFFFFF;
+
+                int r = rgb & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = (rgb >> 16) & 0xFF;
+
+                y = ((66 * r + 129 * g + 25 * b + 128) >> 8) + 16;
+                u = ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128;
+                v = ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128;
+
+                y = y < 16 ? 16 : (y > 255 ? 255 : y);
+                u = u < 0 ? 0 : (u > 255 ? 255 : u);
+                v = v < 0 ? 0 : (v > 255 ? 255 : v);
+
+                yuv[i * width + j] = (byte) y;
+//                yuv[len + (i >> 1) * width + (j & ~1) + 0] = (byte) u;
+//                yuv[len + (i >> 1) * width + (j & ~1) + 1] = (byte) v;
+            }
+        }
+        return yuv;
+    }
+
+    /**
+     * 减小bitmap体积
+     *
+     * @param bitmap
+     * @return
+     */
+    public static Bitmap getSmallerBitmap(Bitmap bitmap) {
+        int size = bitmap.getWidth() * bitmap.getHeight() / 160000;
+        if (size <= 1) return bitmap; // 如果小于
+        else {
+            Matrix matrix = new Matrix();
+            matrix.postScale((float) (1 / Math.sqrt(size)), (float) (1 / Math.sqrt(size)));
+            Bitmap resizeBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            return resizeBitmap;
+        }
+    }
+
+    /**
+     * 将uri转换成bitmap
+     *
+     * @param uri
+     * @return
+     */
     private Bitmap decodeUriAsBitmap(Uri uri) {
         Bitmap bitmap = null;
         try {
@@ -569,7 +742,8 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         }
     }
 
-    private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b, float scaleFactor) {
+    private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b,
+                                 float scaleFactor) {
         if (a != null && b != null) {
             canvas.drawLine(scaleFactor * a.getX(),
                     scaleFactor * a.getY(),
@@ -580,7 +754,8 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
 
     // Put up our own UI for how to handle the decoded contents.
-    private void handleDecodeInternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
+    private void handleDecodeInternally(Result rawResult, ResultHandler resultHandler, Bitmap
+            barcode) {
 
         maybeSetClipboard(resultHandler);
 
@@ -606,7 +781,8 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
 
     // Briefly show the contents of the barcode, then handle the result outside Barcode Scanner.
-    private void handleDecodeExternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
+    private void handleDecodeExternally(Result rawResult, ResultHandler resultHandler, Bitmap
+            barcode) {
 
         if (barcode != null) {
             // 结果bitmap
