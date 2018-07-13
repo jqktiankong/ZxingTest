@@ -191,10 +191,7 @@
     <string name="result_wifi">Found WLAN Configuration</string>
     <string name="sbc_name">Google Book Search</string>
     <string name="wifi_changing_network">Requesting connection to network\u2026</string>
-    <style name="CaptureTheme" parent="android:Theme.Holo.NoActionBar">
-    <item name="android:windowContentOverlay">@null</item>
-    <item name="android:windowActionBarOverlay">true</item>
-    <item name="android:windowActionModeOverlay">true</item>
+    <style name="CaptureTheme" parent="Theme.AppCompat.Light.NoActionBar">
   </style>
     <style name="ResultButton" parent="@android:style/Widget.Holo.Button.Borderless.Small">
     <item name="android:layout_width">0dip</item>

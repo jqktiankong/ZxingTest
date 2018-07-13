@@ -83,6 +83,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -142,7 +143,6 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
     //自己添加的view
     private ImageView back;
     private TextView photoAlbum;
-    private ImageView img;
     // dialog
     private ScaningDialog scaningDialog;
     private FragmentTransaction ft;
@@ -160,16 +160,18 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
             super.handleMessage(msg);
             switch (msg.what) {
                 case SHOWSCANINGDIALOG:
+                    Log.d("123", "显示dialog");
                     showProgress();
                     break;
                 case HIDESCANINGDIALOG:
+                    Log.d("123", "隐藏dialog");
                     hideProgress();
                     break;
                 case STARTSCAN:
-                    inactivityTimer.onResume();
+                    onResume();
                     break;
                 case STOPSCAN:
-                    inactivityTimer.onPause();
+                    onPause();
                     break;
             }
         }
@@ -225,13 +227,12 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
     public void initView() {
         back = findViewById(R.id.back);
         photoAlbum = findViewById(R.id.photoAlbum);
-        img = findViewById(R.id.img);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
+        Log.d("123", "onResume");
         // historyManager must be initialized here to update the history preference
         historyManager = new HistoryManager(this);
         historyManager.trimHistory();
@@ -379,6 +380,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
 
     @Override
     protected void onPause() {
+        Log.d("123", "onPause");
         if (handler != null) {
             handler.quitSynchronously();
             handler = null;
@@ -401,7 +403,9 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
     @Override
     protected void onDestroy() {
         inactivityTimer.shutdown();
-        singleThresd.shutdown();
+        if (singleThresd != null) {
+            singleThresd.shutdown();
+        }
         super.onDestroy();
     }
 
@@ -470,6 +474,7 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        Log.d("123", "onActivityResult");
         if (resultCode == RESULT_OK && requestCode == HISTORY_REQUEST_CODE && historyManager != null) {
             int itemNumber = intent.getIntExtra(Intents.History.ITEM_NUMBER, -1);
             if (itemNumber >= 0) {
@@ -482,9 +487,11 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
             final Uri uri = intent.getData();
             final Bitmap bitmap = getSmallerBitmap(decodeUriAsBitmap(uri));
 //            final Bitmap bitmap = decodeUriAsBitmap(uri);
-            img.setImageBitmap(bitmap);
-
             // 识别二维码作
+
+            mhandler.sendEmptyMessage(SHOWSCANINGDIALOG);
+            mhandler.sendEmptyMessageDelayed(STOPSCAN, 500);
+
             singleThresd = Executors.newSingleThreadExecutor();
             singleThresd.execute(new Runnable() {
                 @Override
@@ -496,26 +503,27 @@ public final class CaptureActivity extends AppCompatActivity implements SurfaceH
                     Reader reader1 = new MultiFormatReader();
                     Result result1;
                     try {
-                        handler.sendEmptyMessage(SHOWSCANINGDIALOG);
-                        handler.sendEmptyMessage(STOPSCAN);
                         result1 = reader1.decode(binaryBitmap);
                         String content = result1.getText();
-                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
-                        handler.sendEmptyMessage(STARTSCAN);
+                        mhandler.sendEmptyMessageDelayed(HIDESCANINGDIALOG, 500);
+                        Intent intent1 = new Intent();
+                        intent1.putExtra("scanResult", content);
+                        setResult(Constants.RESULT_SCAN, intent1);
+                        finish();
                         Log.d("123", content);
                     } catch (NotFoundException e) {
-                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
-                        handler.sendEmptyMessage(STARTSCAN);
+                        mhandler.sendEmptyMessageDelayed(HIDESCANINGDIALOG, 500);
+                        mhandler.sendEmptyMessageDelayed(STARTSCAN, 500);
                         Log.d("123", "NotFoundException: " + e.getMessage());
                         e.printStackTrace();
                     } catch (ChecksumException e) {
-                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
-                        handler.sendEmptyMessage(STARTSCAN);
+                        mhandler.sendEmptyMessageDelayed(HIDESCANINGDIALOG, 500);
+                        mhandler.sendEmptyMessageDelayed(STARTSCAN, 500);
                         Log.d("123", "ChecksumException: " + e.getMessage());
                         e.printStackTrace();
                     } catch (FormatException e) {
-                        handler.sendEmptyMessage(HIDESCANINGDIALOG);
-                        handler.sendEmptyMessage(STARTSCAN);
+                        mhandler.sendEmptyMessageDelayed(HIDESCANINGDIALOG, 500);
+                        mhandler.sendEmptyMessageDelayed(STARTSCAN, 500);
                         Log.d("123", "FormatException: " + e.getMessage());
                         e.printStackTrace();
                     }
